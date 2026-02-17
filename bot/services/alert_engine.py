@@ -37,13 +37,38 @@ logger = logging.getLogger("whalegod.alert_engine")
 # ---------------------------------------------------------------------------
 # Anti-flood state
 # ---------------------------------------------------------------------------
-_event_timestamps: deque[float] = deque()
+_event_timestamps: deque[float] = deque(maxlen=500)
 _flood_mode: bool = False
 _flood_buffer: list[dict[str, Any]] = []
+_FLOOD_BUFFER_MAX: int = 100
 _flood_resume_checks: int = 0
 
 # Track last event per chain for health checks
 last_event_time: dict[str, str] = {}
+
+# ---------------------------------------------------------------------------
+# Subscription cache (avoid DB query on every alert)
+# ---------------------------------------------------------------------------
+_sub_cache: list[dict[str, Any]] | None = None
+_sub_cache_ts: float = 0.0
+_SUB_CACHE_TTL: float = 30.0
+
+
+async def _get_subs_cached() -> list[dict[str, Any]]:
+    """Return cached subscriptions, refreshing every 30s."""
+    global _sub_cache, _sub_cache_ts
+    now = time.monotonic()
+    if _sub_cache is not None and (now - _sub_cache_ts) < _SUB_CACHE_TTL:
+        return _sub_cache
+    _sub_cache = await get_all_enabled_subscriptions()
+    _sub_cache_ts = now
+    return _sub_cache
+
+
+def _sub_cache_invalidate() -> None:
+    """Invalidate the subscription cache (e.g. after a delete)."""
+    global _sub_cache
+    _sub_cache = None
 
 
 # ---------------------------------------------------------------------------
@@ -198,7 +223,8 @@ async def _handle_flood(
             _flood_resume_checks = 0
             logger.warning("Flood mode ACTIVATED — batching alerts")
 
-        _flood_buffer.append(transfer)
+        if len(_flood_buffer) < _FLOOD_BUFFER_MAX:
+            _flood_buffer.append(transfer)
 
         # Send digest every 60 seconds while in flood mode
         if len(_flood_buffer) >= FLOOD_THRESHOLD:
@@ -348,7 +374,7 @@ async def _broadcast(
     transfer: dict[str, Any],
 ) -> None:
     """Send an alert to all enabled subscriptions that pass threshold/filter checks."""
-    subs = await get_all_enabled_subscriptions()
+    subs = await _get_subs_cached()
     usd_value = transfer.get("usd_value", 0) if transfer else 0
     tx_category = transfer.get("tx_category", "") if transfer else ""
     chain = transfer.get("chain", "") if transfer else ""
@@ -379,15 +405,18 @@ async def _broadcast(
         except Forbidden:
             logger.info("Bot blocked/kicked from chat %d — removing subscription", chat_id)
             await delete_subscription(chat_id)
+            _sub_cache_invalidate()
         except BadRequest as e:
             if "chat not found" in str(e).lower():
                 logger.info("Chat %d not found — removing subscription", chat_id)
                 await delete_subscription(chat_id)
+                _sub_cache_invalidate()
             else:
                 logger.warning("BadRequest sending to chat %d: %s", chat_id, e)
         except ChatMigrated as e:
             logger.info("Chat %d migrated to %d — removing old subscription", chat_id, e.new_chat_id)
             await delete_subscription(chat_id)
+            _sub_cache_invalidate()
         except Exception:
             logger.exception("Error sending alert to chat %d", chat_id)
 

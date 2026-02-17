@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any
 
 from bot.config import (
@@ -232,7 +233,6 @@ def format_scan_result(
     # Pair age calculation
     pair_age_str = ""
     if pair_created:
-        from datetime import datetime, timezone
         try:
             created_dt = datetime.fromtimestamp(pair_created / 1000, tz=timezone.utc)
             age = datetime.now(timezone.utc) - created_dt

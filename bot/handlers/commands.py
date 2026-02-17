@@ -11,6 +11,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from bot.config import (
+    ADMIN_CHAT_ID,
     DONATE_BTC,
     DONATE_ETH,
     DONATE_SOL,
@@ -45,6 +46,33 @@ from bot.utils.helpers import (
 )
 
 logger = logging.getLogger("whalegod.commands")
+
+# ---------------------------------------------------------------------------
+# Auth helpers
+# ---------------------------------------------------------------------------
+
+
+def _is_bot_admin(update: Update) -> bool:
+    """Check if user is the bot administrator (ADMIN_CHAT_ID)."""
+    if not ADMIN_CHAT_ID or not update.effective_user:
+        return False
+    return update.effective_user.id == ADMIN_CHAT_ID
+
+
+async def _is_group_admin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    """Check if user is admin/creator in a group. Always True for DMs."""
+    chat = update.effective_chat
+    user = update.effective_user
+    if not chat or not user:
+        return False
+    if chat.type == "private":
+        return True
+    try:
+        member = await context.bot.get_chat_member(chat.id, user.id)
+        return member.status in ("creator", "administrator")
+    except Exception:
+        return False
+
 
 # ---------------------------------------------------------------------------
 # Helpers — safe reply for groups, channels, edited msgs
@@ -614,7 +642,11 @@ async def cmd_gas(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 # ---------------------------------------------------------------------------
 
 async def cmd_stats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle /stats — bot statistics."""
+    """Handle /stats — bot statistics (admin only)."""
+    if not _is_bot_admin(update):
+        await _reply(update, "🔒 this command is for bot admins only ser")
+        return
+
     stats = await get_bot_stats()
     active_chats = await count_active_chats()
     tracked_count = await count_total_tracked_wallets()
@@ -701,9 +733,17 @@ async def cmd_donate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
 # ---------------------------------------------------------------------------
 
 async def cmd_settings(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle /settings — show current config with inline keyboard."""
+    """Handle /settings — show current config with inline keyboard.
+
+    In groups, only admins/creators can change settings.
+    """
     if not update.effective_chat:
         return
+
+    if not await _is_group_admin(update, context):
+        await _reply(update, "🔒 only group admins can change settings ser")
+        return
+
     from bot.handlers.callbacks import build_settings_message
 
     chat_id = update.effective_chat.id

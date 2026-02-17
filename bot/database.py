@@ -129,8 +129,10 @@ async def init_db() -> None:
 
     await _db.execute("PRAGMA journal_mode=WAL")
     await _db.execute("PRAGMA synchronous=NORMAL")
-    await _db.execute("PRAGMA cache_size=-64000")
+    await _db.execute("PRAGMA cache_size=-8000")       # 8MB (was 64MB)
     await _db.execute("PRAGMA busy_timeout=5000")
+    await _db.execute("PRAGMA temp_store=MEMORY")       # temp tables in RAM
+    await _db.execute("PRAGMA mmap_size=33554432")      # 32MB memory-mapped I/O
 
     await _db.executescript(SCHEMA_SQL)
     await _db.commit()

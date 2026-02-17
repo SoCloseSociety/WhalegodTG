@@ -8,13 +8,12 @@ import logging
 import signal
 import sys
 import time
-from datetime import datetime, timezone
 from typing import Any
 
 import aiohttp
 from aiohttp import web
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from telegram import BotCommand, Bot, Update
+from telegram import BotCommand, BotCommandScopeChat, Bot
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
@@ -270,15 +269,6 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
 
 
 # ---------------------------------------------------------------------------
-# Post-init — store session in bot_data
-# ---------------------------------------------------------------------------
-
-async def post_init(application: Application) -> None:
-    """Called after Application.initialize()."""
-    application.bot_data["session"] = _session
-
-
-# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -306,7 +296,6 @@ async def main() -> None:
     _app = (
         Application.builder()
         .token(TELEGRAM_BOT_TOKEN)
-        .post_init(post_init)
         .build()
     )
 
@@ -336,8 +325,12 @@ async def main() -> None:
     await _app.initialize()
     await _app.start()
 
-    # Register command menu for BotFather (visible in groups + DMs)
-    await _app.bot.set_my_commands([
+    # Store session in bot_data directly (reliable, no callback dependency)
+    _app.bot_data["session"] = _session
+    logger.info("HTTP session stored in bot_data")
+
+    # Register public command menu (visible to all users)
+    public_commands = [
         BotCommand("start", "Start WHALEGOD and join the pod"),
         BotCommand("whale", "Recent whale movements"),
         BotCommand("top", "Top whale txs by volume (24h)"),
@@ -349,14 +342,24 @@ async def main() -> None:
         BotCommand("settings", "Configure alert thresholds"),
         BotCommand("chains", "Chain status and prices"),
         BotCommand("gas", "Current gas prices"),
-        BotCommand("stats", "Bot statistics"),
         BotCommand("donate", "Support WHALEGOD"),
         BotCommand("help", "Show all commands"),
-    ])
-    logger.info("Bot commands registered for menu")
+    ]
+    await _app.bot.set_my_commands(public_commands)
 
-    # Start the updater (polling mode — works without webhook)
-    await _app.updater.start_polling(drop_pending_updates=True)
+    # Register admin-only menu (includes /stats, visible only to admin)
+    if ADMIN_CHAT_ID:
+        admin_commands = public_commands + [
+            BotCommand("stats", "Bot statistics & health (admin)"),
+        ]
+        try:
+            await _app.bot.set_my_commands(
+                admin_commands,
+                scope=BotCommandScopeChat(chat_id=ADMIN_CHAT_ID),
+            )
+        except Exception:
+            logger.warning("Could not set admin command menu")
+    logger.info("Bot commands registered for menu")
 
     # Start health server
     await start_health_server()
@@ -373,8 +376,11 @@ async def main() -> None:
     _scheduler.start()
     logger.info("Scheduler started with %d jobs", len(_scheduler.get_jobs()))
 
-    # Initial price warm-up
+    # Initial price warm-up — BEFORE polling starts so /gas /chains work immediately
     await price_service.refresh_base_prices(_session)
+
+    # Start polling LAST — all services must be ready before accepting user commands
+    await _app.updater.start_polling(drop_pending_updates=True)
 
     logger.info("WHALEGOD is LIVE ser 🐋🔥 wagmi")
 

@@ -117,20 +117,34 @@ async def handle_settings_callback(
     if not query or not query.data:
         return
 
-    await query.answer()
-
     data = query.data
     if not data.startswith("settings:"):
+        await query.answer()
         return
+
+    # Group admin check — only admins can change settings in groups
+    chat = update.effective_chat
+    user = query.from_user
+    if chat and chat.type in ("group", "supergroup") and user:
+        try:
+            member = await context.bot.get_chat_member(chat.id, user.id)
+            if member.status not in ("creator", "administrator"):
+                await query.answer("🔒 Only group admins can change settings", show_alert=True)
+                return
+        except Exception:
+            await query.answer("⚠️ Could not verify admin status", show_alert=True)
+            return
+
+    await query.answer()
 
     parts = data.split(":")
     if len(parts) < 2:
         return
 
     action = parts[1]
-    if not update.effective_chat:
+    if not chat:
         return
-    chat_id = update.effective_chat.id
+    chat_id = chat.id
 
     # Ensure subscription exists
     sub = await ensure_subscription(chat_id)
