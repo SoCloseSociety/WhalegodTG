@@ -21,6 +21,7 @@ logger = logging.getLogger("whalegod.chains.solana")
 async def register_webhook(session: aiohttp.ClientSession) -> str | None:
     """Register a Helius enhanced webhook for whale transfers.
 
+    Checks for existing webhooks first to avoid duplicates on restart.
     Returns the webhook ID on success, or None.
     """
     if not WEBHOOK_HOST:
@@ -28,6 +29,15 @@ async def register_webhook(session: aiohttp.ClientSession) -> str | None:
         return None
 
     webhook_url = f"http://{WEBHOOK_HOST}:{WEBHOOK_PORT}/webhook/helius"
+
+    # Check for existing webhook with same URL to avoid duplicates
+    existing = await get_existing_webhooks(session)
+    for wh in existing:
+        if wh.get("webhookURL") == webhook_url:
+            wh_id = wh.get("webhookID", "unknown")
+            logger.info("Helius webhook already exists: %s — skipping registration", wh_id)
+            return wh_id
+
     url = f"{HELIUS_BASE_URL}/webhooks?api-key={HELIUS_API_KEY}"
 
     payload = {

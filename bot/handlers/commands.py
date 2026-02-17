@@ -408,10 +408,25 @@ async def cmd_watchlist(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         links = SOLANA_LINKS if chain == "solana" else ETH_LINKS
         explorer_url = links["wallet"].format(address=addr)
 
+        # Portfolio tracking links per wallet
+        if chain == "solana":
+            track_links = (
+                f'<a href="{links["gmgn"].format(address=addr)}">GMGN</a>'
+                f' | <a href="{links["cielo"].format(address=addr)}">Cielo</a>'
+                f' | <a href="{links["step"].format(address=addr)}">Step</a>'
+            )
+        else:
+            track_links = (
+                f'<a href="{links["debank"].format(address=addr)}">DeBank</a>'
+                f' | <a href="{links["arkham"].format(address=addr)}">Arkham</a>'
+                f' | <a href="{links["zerion"].format(address=addr)}">Zerion</a>'
+            )
+
         since = relative_time(created) if created else "unknown"
         lines.append(
             f"{c} <a href=\"{explorer_url}\">{shorten_address(addr)}</a>\n"
-            f"   🏷️ {label} • tracking since {since}"
+            f"   🏷️ {label} • since {since}\n"
+            f"   📊 {track_links}"
         )
 
     msg = header + "\n\n".join(lines)

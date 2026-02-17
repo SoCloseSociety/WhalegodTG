@@ -29,27 +29,19 @@ def build_smart_links(
     to_address: str | None = None,
     token_address: str | None = None,
 ) -> str:
-    """Build an HTML smart links section for an alert message."""
+    """Build compact HTML smart links for an alert message.
+
+    Organized into: TX | Token analysis | Sender tracking | Receiver tracking
+    """
     links_map = SOLANA_LINKS if chain == "solana" else ETH_LINKS
     lines: list[str] = []
 
-    # Transaction link
+    # Row 1: Transaction + Token links (compact, one line)
+    row1: list[str] = []
     if tx_hash:
         tx_url = links_map["tx"].format(tx_hash=tx_hash)
-        lines.append(f'• <a href="{tx_url}">View Transaction</a>')
+        row1.append(f'<a href="{tx_url}">Tx</a>')
 
-    # Sender / receiver links
-    sender_parts: list[str] = []
-    if from_address:
-        wallet_url = links_map["wallet"].format(address=from_address)
-        sender_parts.append(f'<a href="{wallet_url}">Sender</a>')
-    if to_address:
-        wallet_url = links_map["wallet"].format(address=to_address)
-        sender_parts.append(f'<a href="{wallet_url}">Receiver</a>')
-    if sender_parts:
-        lines.append(f"• {' | '.join(sender_parts)}")
-
-    # Chart / analysis links (only for non-native tokens)
     is_native = (
         token_address is None
         or token_address == SOL_MINT
@@ -58,16 +50,42 @@ def build_smart_links(
 
     if token_address and not is_native:
         chart_url = links_map["chart"].format(token_address=token_address)
-        lines.append(f'• <a href="{chart_url}">Chart</a>')
-
+        row1.append(f'<a href="{chart_url}">Chart</a>')
         if chain == "solana":
-            birdeye_url = links_map["birdeye"].format(token_address=token_address)
-            lines.append(f'• <a href="{birdeye_url}">Birdeye</a>')
-            rugcheck_url = links_map["rugcheck"].format(token_address=token_address)
-            lines.append(f'• <a href="{rugcheck_url}">Rugcheck</a>')
+            row1.append(f'<a href="{links_map["birdeye"].format(token_address=token_address)}">Birdeye</a>')
+            row1.append(f'<a href="{links_map["rugcheck"].format(token_address=token_address)}">Safety</a>')
         else:
-            dextools_url = links_map["dextools"].format(token_address=token_address)
-            lines.append(f'• <a href="{dextools_url}">DexTools</a>')
+            row1.append(f'<a href="{links_map["dextools"].format(token_address=token_address)}">DexTools</a>')
+            row1.append(f'<a href="{links_map["bubblemaps"].format(token_address=token_address)}">Holders</a>')
+
+    if row1:
+        lines.append("📜 " + " | ".join(row1))
+
+    # Row 2: Sender wallet tracking links
+    if from_address:
+        sender_parts: list[str] = []
+        wallet_url = links_map["wallet"].format(address=from_address)
+        sender_parts.append(f'<a href="{wallet_url}">Explorer</a>')
+        if chain == "solana":
+            sender_parts.append(f'<a href="{links_map["gmgn"].format(address=from_address)}">GMGN</a>')
+            sender_parts.append(f'<a href="{links_map["cielo"].format(address=from_address)}">Cielo</a>')
+        else:
+            sender_parts.append(f'<a href="{links_map["debank"].format(address=from_address)}">DeBank</a>')
+            sender_parts.append(f'<a href="{links_map["arkham"].format(address=from_address)}">Arkham</a>')
+        lines.append("📤 " + " | ".join(sender_parts))
+
+    # Row 3: Receiver wallet tracking links
+    if to_address:
+        recv_parts: list[str] = []
+        wallet_url = links_map["wallet"].format(address=to_address)
+        recv_parts.append(f'<a href="{wallet_url}">Explorer</a>')
+        if chain == "solana":
+            recv_parts.append(f'<a href="{links_map["gmgn"].format(address=to_address)}">GMGN</a>')
+            recv_parts.append(f'<a href="{links_map["cielo"].format(address=to_address)}">Cielo</a>')
+        else:
+            recv_parts.append(f'<a href="{links_map["debank"].format(address=to_address)}">DeBank</a>')
+            recv_parts.append(f'<a href="{links_map["arkham"].format(address=to_address)}">Arkham</a>')
+        lines.append("📥 " + " | ".join(recv_parts))
 
     return "\n".join(lines)
 
@@ -309,24 +327,31 @@ def format_scan_result(
     # Rug risk assessment
     msg += f"\n{risk_emoji} <b>Risk Level:</b> {rug_risk}\n"
 
-    # Links
-    msg += (
-        f"\n🔗 <b>Links:</b>\n"
-        f'• <a href="{chart_url}">Chart</a>'
-    )
-
+    # Links — compact, all actionable
     if chain == "solana":
         birdeye_url = links_map["birdeye"].format(token_address=token_address)
         rugcheck_url = links_map["rugcheck"].format(token_address=token_address)
         jupiter_url = links_map["jupiter"].format(token_address=token_address)
-        msg += f'\n• <a href="{birdeye_url}">Birdeye</a>'
-        msg += f'\n• <a href="{rugcheck_url}">Rugcheck</a>'
-        msg += f'\n• <a href="{jupiter_url}">Swap on Jupiter</a>'
+        bubblemaps_url = links_map["bubblemaps"].format(token_address=token_address)
+        photon_url = links_map["photon"].format(token_address=token_address)
+        msg += (
+            f'\n🔗 <a href="{chart_url}">Chart</a>'
+            f' | <a href="{birdeye_url}">Birdeye</a>'
+            f' | <a href="{photon_url}">Photon</a>'
+            f' | <a href="{bubblemaps_url}">Holders</a>'
+            f'\n⚠️ <a href="{rugcheck_url}">Rugcheck</a>'
+            f' | 🔄 <a href="{jupiter_url}">Swap on Jupiter</a>'
+        )
     else:
         dextools_url = links_map["dextools"].format(token_address=token_address)
         uniswap_url = links_map["uniswap"].format(token_address=token_address)
-        msg += f'\n• <a href="{dextools_url}">DexTools</a>'
-        msg += f'\n• <a href="{uniswap_url}">Swap on Uniswap</a>'
+        bubblemaps_url = links_map["bubblemaps"].format(token_address=token_address)
+        msg += (
+            f'\n🔗 <a href="{chart_url}">Chart</a>'
+            f' | <a href="{dextools_url}">DexTools</a>'
+            f' | <a href="{bubblemaps_url}">Holders</a>'
+            f'\n🔄 <a href="{uniswap_url}">Swap on Uniswap</a>'
+        )
 
     if recent_txs:
         msg += "\n\n<b>Recent whale TXs:</b>\n"

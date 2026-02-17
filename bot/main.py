@@ -30,7 +30,7 @@ from bot.config import (
     WEBHOOK_PORT,
     validate_env,
 )
-from bot.database import cleanup, close_db, init_db
+from bot.database import backup_db, cleanup, close_db, init_db
 from bot.handlers.callbacks import handle_settings_callback
 from bot.handlers.commands import (
     cmd_chains,
@@ -226,6 +226,17 @@ def setup_scheduler(session: aiohttp.ClientSession, bot: Bot) -> AsyncIOSchedule
         hour=3,
         minute=0,
         id="db_cleanup",
+        max_instances=1,
+        misfire_grace_time=30,
+    )
+
+    # DB backup — daily at 04:00 UTC (after cleanup)
+    scheduler.add_job(
+        backup_db,
+        "cron",
+        hour=4,
+        minute=0,
+        id="db_backup",
         max_instances=1,
         misfire_grace_time=30,
     )

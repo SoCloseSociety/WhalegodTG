@@ -1,9 +1,11 @@
-"""SQLite database: schema, migrations, all queries, WAL mode, indexing."""
+"""SQLite database: schema, migrations, all queries, WAL mode, indexing, backups."""
 
 from __future__ import annotations
 
+import glob
 import logging
 import os
+import shutil
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -427,7 +429,7 @@ async def upsert_price_cache(
 # ---------------------------------------------------------------------------
 
 async def cleanup() -> None:
-    """Delete old whale_logs and stale price_cache entries."""
+    """Delete old whale_logs and stale price_cache entries, then reclaim space."""
     db = get_db()
 
     log_cutoff = (
@@ -447,7 +449,66 @@ async def cleanup() -> None:
     prices_deleted = cur.rowcount
     await db.commit()
 
+    # Reclaim disk space if significant rows were deleted
+    if logs_deleted > 50 or prices_deleted > 50:
+        try:
+            await db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            # VACUUM rebuilds the DB file — only run when deletions are significant
+            if logs_deleted > 200:
+                await db.execute("VACUUM")
+                logger.info("VACUUM completed — reclaimed disk space")
+        except Exception:
+            logger.warning("VACUUM skipped — DB may be locked")
+
     logger.info(
         "Cleanup complete — deleted %d old whale logs, %d stale prices",
         logs_deleted, prices_deleted,
     )
+
+
+# ---------------------------------------------------------------------------
+# Backup
+# ---------------------------------------------------------------------------
+
+_BACKUP_MAX_KEEP: int = 3
+
+
+async def backup_db() -> str | None:
+    """Create a timestamped backup of the database. Keeps last 3 backups.
+
+    Returns the backup path on success, or None.
+    """
+    if _db is None:
+        logger.warning("Cannot backup — database not initialized")
+        return None
+
+    backup_dir = os.path.join(os.path.dirname(DB_PATH) or ".", "backups")
+    os.makedirs(backup_dir, exist_ok=True)
+
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    backup_path = os.path.join(backup_dir, f"whalegod_{timestamp}.db")
+
+    try:
+        # Checkpoint WAL to ensure consistency before copy
+        await _db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        await _db.commit()
+
+        # Copy database file
+        shutil.copy2(DB_PATH, backup_path)
+
+        # Rotate old backups — keep only the most recent ones
+        existing = sorted(glob.glob(os.path.join(backup_dir, "whalegod_*.db")))
+        while len(existing) > _BACKUP_MAX_KEEP:
+            old = existing.pop(0)
+            try:
+                os.remove(old)
+                logger.debug("Removed old backup: %s", old)
+            except OSError:
+                pass
+
+        size_mb = os.path.getsize(backup_path) / (1024 * 1024)
+        logger.info("Database backup created: %s (%.1f MB)", backup_path, size_mb)
+        return backup_path
+    except Exception:
+        logger.exception("Database backup failed")
+        return None

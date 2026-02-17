@@ -127,23 +127,30 @@ TX_CATEGORIES: dict[str, dict[str, str]] = {
 # Smart links
 # ---------------------------------------------------------------------------
 SOLANA_LINKS: dict[str, str] = {
-    "tx":       "https://solscan.io/tx/{tx_hash}",
-    "wallet":   "https://solscan.io/account/{address}",
-    "chart":    "https://dexscreener.com/solana/{token_address}",
-    "birdeye":  "https://birdeye.so/token/{token_address}?chain=solana",
-    "rugcheck": "https://rugcheck.xyz/tokens/{token_address}",
-    "jupiter":  "https://jup.ag/swap/SOL-{token_address}",
-    "step":     "https://app.step.finance/en/dashboard?watching={address}",
+    "tx":         "https://solscan.io/tx/{tx_hash}",
+    "wallet":     "https://solscan.io/account/{address}",
+    "chart":      "https://dexscreener.com/solana/{token_address}",
+    "birdeye":    "https://birdeye.so/token/{token_address}?chain=solana",
+    "rugcheck":   "https://rugcheck.xyz/tokens/{token_address}",
+    "jupiter":    "https://jup.ag/swap/SOL-{token_address}",
+    "step":       "https://app.step.finance/en/dashboard?watching={address}",
+    "gmgn":       "https://gmgn.ai/sol/address/{address}",
+    "cielo":      "https://app.cielo.finance/profile/{address}/tokens/solana",
+    "photon":     "https://photon-sol.tinyastro.io/en/lp/{token_address}",
+    "bubblemaps": "https://app.bubblemaps.io/sol/token/{token_address}",
 }
 
 ETH_LINKS: dict[str, str] = {
-    "tx":       "https://etherscan.io/tx/{tx_hash}",
-    "wallet":   "https://etherscan.io/address/{address}",
-    "chart":    "https://dexscreener.com/ethereum/{token_address}",
-    "debank":   "https://debank.com/profile/{address}",
-    "dextools": "https://www.dextools.io/app/ether/pair-explorer/{token_address}",
-    "uniswap":  "https://app.uniswap.org/swap?outputCurrency={token_address}",
-    "gas":      "https://etherscan.io/gastracker",
+    "tx":         "https://etherscan.io/tx/{tx_hash}",
+    "wallet":     "https://etherscan.io/address/{address}",
+    "chart":      "https://dexscreener.com/ethereum/{token_address}",
+    "debank":     "https://debank.com/profile/{address}",
+    "dextools":   "https://www.dextools.io/app/ether/pair-explorer/{token_address}",
+    "uniswap":    "https://app.uniswap.org/swap?outputCurrency={token_address}",
+    "gas":        "https://etherscan.io/gastracker",
+    "arkham":     "https://platform.arkhamintelligence.com/explorer/address/{address}",
+    "zerion":     "https://app.zerion.io/{address}/overview",
+    "bubblemaps": "https://app.bubblemaps.io/eth/token/{token_address}",
 }
 
 # ---------------------------------------------------------------------------
