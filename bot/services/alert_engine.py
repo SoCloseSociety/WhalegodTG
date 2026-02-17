@@ -58,17 +58,22 @@ _SEEN_TTL: float = 600.0  # 10 minutes
 _sub_cache: list[dict[str, Any]] | None = None
 _sub_cache_ts: float = 0.0
 _SUB_CACHE_TTL: float = 30.0
+_sub_cache_lock: asyncio.Lock = asyncio.Lock()
 
 
 async def _get_subs_cached() -> list[dict[str, Any]]:
-    """Return cached subscriptions, refreshing every 30s."""
+    """Return cached subscriptions, refreshing every 30s (thread-safe)."""
     global _sub_cache, _sub_cache_ts
     now = time.monotonic()
     if _sub_cache is not None and (now - _sub_cache_ts) < _SUB_CACHE_TTL:
         return _sub_cache
-    _sub_cache = await get_all_enabled_subscriptions()
-    _sub_cache_ts = now
-    return _sub_cache
+    async with _sub_cache_lock:
+        # Double-check after acquiring lock
+        if _sub_cache is not None and (time.monotonic() - _sub_cache_ts) < _SUB_CACHE_TTL:
+            return _sub_cache
+        _sub_cache = await get_all_enabled_subscriptions()
+        _sub_cache_ts = time.monotonic()
+        return _sub_cache
 
 
 def _sub_cache_invalidate() -> None:
@@ -175,8 +180,8 @@ async def _pipeline(
         return  # Already processing or processed
     _seen_tx_hashes[dedup_key] = now
 
-    # Prune old entries periodically
-    if len(_seen_tx_hashes) > _SEEN_MAX_SIZE:
+    # Prune stale entries periodically (every 200 entries or at max size)
+    if len(_seen_tx_hashes) > 200:
         cutoff = now - _SEEN_TTL
         stale = [k for k, ts in _seen_tx_hashes.items() if ts < cutoff]
         for k in stale:
@@ -333,39 +338,40 @@ def _classify(
     if tx_type in ("RAYDIUM_CLMM", "RAYDIUM_CPMM", "METEORA_DLMM"):
         return "dex_swap", "neutral"
 
+    # Cache label lookups once per address to avoid redundant calls
+    from_info = label_service.get_label(chain, from_address) if from_address else None
+    to_info = label_service.get_label(chain, to_address) if to_address else None
+    from_type = from_info["type"] if from_info else "unknown"
+    to_type = to_info["type"] if to_info else "unknown"
+
     # 1. Memecoin infrastructure detection (Pump.fun, etc.)
-    if (from_address and label_service.is_memecoin_infra(chain, from_address)) or \
-       (to_address and label_service.is_memecoin_infra(chain, to_address)):
+    if from_type == "memecoin_infra" or to_type == "memecoin_infra":
         return "memecoin_launch", "degen"
 
     # 2. MEV bot detection (sandwich bots, Jito tips, Flashbots)
-    if (from_address and label_service.is_mev(chain, from_address)) or \
-       (to_address and label_service.is_mev(chain, to_address)):
+    if from_type in ("mev_bot", "mev_infra") or to_type in ("mev_bot", "mev_infra"):
         return "mev_activity", "caution"
 
     # 3. Trading bot detection (Banana Gun, Maestro)
-    if (from_address and label_service.is_trading_bot(chain, from_address)) or \
-       (to_address and label_service.is_trading_bot(chain, to_address)):
+    if from_type == "trading_bot" or to_type == "trading_bot":
         return "trading_bot", "neutral"
 
     # 4. CEX deposit (to_address is CEX)
-    if to_address and label_service.is_cex(chain, to_address):
+    if to_type == "cex":
         return "cex_deposit", "bearish"
 
     # 5. CEX withdrawal (from_address is CEX)
-    if from_address and label_service.is_cex(chain, from_address):
+    if from_type == "cex":
         return "cex_withdrawal", "bullish"
 
     # 6. Bridge transfer
-    if (from_address and label_service.is_bridge(chain, from_address)) or \
-       (to_address and label_service.is_bridge(chain, to_address)):
+    if from_type == "bridge" or to_type == "bridge":
         return "bridge", "neutral"
 
     # 7. DEX swap
     if tx_type in ("SWAP", "swap"):
         return "dex_swap", "neutral"
-    if (from_address and label_service.is_dex(chain, from_address)) or \
-       (to_address and label_service.is_dex(chain, to_address)):
+    if from_type == "dex" or to_type == "dex":
         return "dex_swap", "neutral"
 
     # 8. LP detection — Helius tx types
@@ -375,8 +381,9 @@ def _classify(
         return "lp_remove", "bearish"
 
     # 9. Smart money detection (VCs, funds, market makers, foundations)
-    if (from_address and label_service.is_smart_money(chain, from_address)) or \
-       (to_address and label_service.is_smart_money(chain, to_address)):
+    if from_type in ("fund", "market_maker", "foundation", "whale"):
+        return "smart_money_move", "alpha"
+    if to_type in ("fund", "market_maker", "foundation", "whale"):
         return "smart_money_move", "alpha"
 
     # Default: wallet-to-wallet transfer

@@ -127,30 +127,51 @@ TX_CATEGORIES: dict[str, dict[str, str]] = {
 # Smart links
 # ---------------------------------------------------------------------------
 SOLANA_LINKS: dict[str, str] = {
+    # Explorers
     "tx":         "https://solscan.io/tx/{tx_hash}",
     "wallet":     "https://solscan.io/account/{address}",
+    "solana_fm":  "https://solana.fm/address/{address}",
+    # Charts & analysis
     "chart":      "https://dexscreener.com/solana/{token_address}",
     "birdeye":    "https://birdeye.so/token/{token_address}?chain=solana",
+    "photon":     "https://photon-sol.tinyastro.io/en/lp/{token_address}",
+    "axiom":      "https://axiom.trade/t/{token_address}",
+    # Safety
     "rugcheck":   "https://rugcheck.xyz/tokens/{token_address}",
+    "bubblemaps": "https://app.bubblemaps.io/sol/token/{token_address}",
+    # Swap
     "jupiter":    "https://jup.ag/swap/SOL-{token_address}",
-    "step":       "https://app.step.finance/en/dashboard?watching={address}",
+    # Wallet dashboards
     "gmgn":       "https://gmgn.ai/sol/address/{address}",
     "cielo":      "https://app.cielo.finance/profile/{address}/tokens/solana",
-    "photon":     "https://photon-sol.tinyastro.io/en/lp/{token_address}",
-    "bubblemaps": "https://app.bubblemaps.io/sol/token/{token_address}",
+    "step":       "https://app.step.finance/en/dashboard?watching={address}",
+    "sonarwatch": "https://sonar.watch/portfolio/{address}",
+    # Telegram trading bots
+    "trojan":     "https://t.me/TrojanOnSolana_bot?start={token_address}",
+    "bonkbot":    "https://t.me/bonkbot_bot?start={token_address}",
+    "maestro":    "https://t.me/MaestroSniperBot?start={token_address}",
+    "banana":     "https://t.me/BananaGunSniper_bot?start=snp_{token_address}",
 }
 
 ETH_LINKS: dict[str, str] = {
+    # Explorers
     "tx":         "https://etherscan.io/tx/{tx_hash}",
     "wallet":     "https://etherscan.io/address/{address}",
+    # Charts & analysis
     "chart":      "https://dexscreener.com/ethereum/{token_address}",
-    "debank":     "https://debank.com/profile/{address}",
     "dextools":   "https://www.dextools.io/app/ether/pair-explorer/{token_address}",
+    "bubblemaps": "https://app.bubblemaps.io/eth/token/{token_address}",
+    # Swap
     "uniswap":    "https://app.uniswap.org/swap?outputCurrency={token_address}",
-    "gas":        "https://etherscan.io/gastracker",
+    # Wallet dashboards
+    "debank":     "https://debank.com/profile/{address}",
     "arkham":     "https://platform.arkhamintelligence.com/explorer/address/{address}",
     "zerion":     "https://app.zerion.io/{address}/overview",
-    "bubblemaps": "https://app.bubblemaps.io/eth/token/{token_address}",
+    # Gas
+    "gas":        "https://etherscan.io/gastracker",
+    # Telegram trading bots
+    "maestro":    "https://t.me/MaestroSniperBot?start={token_address}",
+    "banana":     "https://t.me/BananaGunSniper_bot?start=snp_{token_address}",
 }
 
 # ---------------------------------------------------------------------------

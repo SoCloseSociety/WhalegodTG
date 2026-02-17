@@ -413,6 +413,7 @@ async def cmd_watchlist(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             track_links = (
                 f'<a href="{links["gmgn"].format(address=addr)}">GMGN</a>'
                 f' | <a href="{links["cielo"].format(address=addr)}">Cielo</a>'
+                f' | <a href="{links["sonarwatch"].format(address=addr)}">Sonar</a>'
                 f' | <a href="{links["step"].format(address=addr)}">Step</a>'
             )
         else:
@@ -565,7 +566,22 @@ async def cmd_trending(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             line += f" — {price_str}"
         if change_str:
             line += change_str
-        line += f'\n   🔗 <a href="{chart_link}">Chart</a> • 🚀 Boosted\n\n'
+
+        # Chart + trading bot quick-buy links
+        links = SOLANA_LINKS if chain_id == "solana" else ETH_LINKS
+        line += f'\n   🔗 <a href="{chart_link}">Chart</a>'
+        if chain_id == "solana":
+            line += (
+                f' | 🤖 <a href="{links["trojan"].format(token_address=token_addr)}">Trojan</a>'
+                f' | <a href="{links["bonkbot"].format(token_address=token_addr)}">BonkBot</a>'
+            )
+        else:
+            line += (
+                f' | 🤖 <a href="{links["maestro"].format(token_address=token_addr)}">Maestro</a>'
+                f' | <a href="{links["banana"].format(token_address=token_addr)}">Banana</a>'
+            )
+        line += "\n\n"
+
         msg += line
         count += 1
 

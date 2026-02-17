@@ -169,26 +169,25 @@ async def handle_settings_callback(
         await update_subscription(chat_id, **{column: new_val})
         sub[column] = new_val
 
-    # Threshold actions
-    elif action == "sol_t" and len(parts) == 3:
-        val = float(parts[2])
-        await update_subscription(chat_id, min_sol_threshold=val)
-        sub["min_sol_threshold"] = val
+    # Threshold actions (with safe parsing and range validation)
+    elif action in ("sol_t", "eth_t", "usd_t", "lp_t") and len(parts) == 3:
+        try:
+            val = float(parts[2])
+        except (ValueError, TypeError):
+            logger.warning("Invalid threshold value in callback: %s", data)
+            return
+        if val < 0 or val > 10_000_000:
+            return
 
-    elif action == "eth_t" and len(parts) == 3:
-        val = float(parts[2])
-        await update_subscription(chat_id, min_eth_threshold=val)
-        sub["min_eth_threshold"] = val
-
-    elif action == "usd_t" and len(parts) == 3:
-        val = float(parts[2])
-        await update_subscription(chat_id, min_usd_threshold=val)
-        sub["min_usd_threshold"] = val
-
-    elif action == "lp_t" and len(parts) == 3:
-        val = float(parts[2])
-        await update_subscription(chat_id, min_lp_threshold=val)
-        sub["min_lp_threshold"] = val
+        threshold_map = {
+            "sol_t": "min_sol_threshold",
+            "eth_t": "min_eth_threshold",
+            "usd_t": "min_usd_threshold",
+            "lp_t": "min_lp_threshold",
+        }
+        column = threshold_map[action]
+        await update_subscription(chat_id, **{column: val})
+        sub[column] = val
 
     # Rebuild settings message
     msg, keyboard = build_settings_message(sub)

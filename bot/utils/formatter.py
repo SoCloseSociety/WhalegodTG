@@ -22,6 +22,13 @@ from bot.utils.helpers import (
 from bot.utils.whale_quotes import get_commentary
 
 
+def _addrs_match(a: str | None, b: str | None) -> bool:
+    """Check if two addresses are the same (case-insensitive for ETH)."""
+    if not a or not b:
+        return False
+    return a.lower() == b.lower()
+
+
 def build_smart_links(
     chain: str,
     tx_hash: str,
@@ -31,12 +38,13 @@ def build_smart_links(
 ) -> str:
     """Build compact HTML smart links for an alert message.
 
-    Organized into: TX | Token analysis | Sender tracking | Receiver tracking
+    Rows: TX+Token | Sender tracking | Receiver tracking | Trading bots
+    Deduplicates receiver row when sender == receiver.
     """
     links_map = SOLANA_LINKS if chain == "solana" else ETH_LINKS
     lines: list[str] = []
 
-    # Row 1: Transaction + Token links (compact, one line)
+    # Row 1: Transaction + Token links
     row1: list[str] = []
     if tx_hash:
         tx_url = links_map["tx"].format(tx_hash=tx_hash)
@@ -69,23 +77,41 @@ def build_smart_links(
         if chain == "solana":
             sender_parts.append(f'<a href="{links_map["gmgn"].format(address=from_address)}">GMGN</a>')
             sender_parts.append(f'<a href="{links_map["cielo"].format(address=from_address)}">Cielo</a>')
+            sender_parts.append(f'<a href="{links_map["sonarwatch"].format(address=from_address)}">Sonar</a>')
         else:
             sender_parts.append(f'<a href="{links_map["debank"].format(address=from_address)}">DeBank</a>')
             sender_parts.append(f'<a href="{links_map["arkham"].format(address=from_address)}">Arkham</a>')
+            sender_parts.append(f'<a href="{links_map["zerion"].format(address=from_address)}">Zerion</a>')
         lines.append("📤 " + " | ".join(sender_parts))
 
-    # Row 3: Receiver wallet tracking links
-    if to_address:
+    # Row 3: Receiver wallet tracking links (skip if same as sender)
+    if to_address and not _addrs_match(from_address, to_address):
         recv_parts: list[str] = []
         wallet_url = links_map["wallet"].format(address=to_address)
         recv_parts.append(f'<a href="{wallet_url}">Explorer</a>')
         if chain == "solana":
             recv_parts.append(f'<a href="{links_map["gmgn"].format(address=to_address)}">GMGN</a>')
             recv_parts.append(f'<a href="{links_map["cielo"].format(address=to_address)}">Cielo</a>')
+            recv_parts.append(f'<a href="{links_map["sonarwatch"].format(address=to_address)}">Sonar</a>')
         else:
             recv_parts.append(f'<a href="{links_map["debank"].format(address=to_address)}">DeBank</a>')
             recv_parts.append(f'<a href="{links_map["arkham"].format(address=to_address)}">Arkham</a>')
+            recv_parts.append(f'<a href="{links_map["zerion"].format(address=to_address)}">Zerion</a>')
         lines.append("📥 " + " | ".join(recv_parts))
+
+    # Row 4: Trading bot quick-buy links (only for non-native tokens)
+    if token_address and not is_native:
+        bot_parts: list[str] = []
+        if chain == "solana":
+            bot_parts.append(f'<a href="{links_map["trojan"].format(token_address=token_address)}">Trojan</a>')
+            bot_parts.append(f'<a href="{links_map["bonkbot"].format(token_address=token_address)}">BonkBot</a>')
+            bot_parts.append(f'<a href="{links_map["maestro"].format(token_address=token_address)}">Maestro</a>')
+            bot_parts.append(f'<a href="{links_map["banana"].format(token_address=token_address)}">Banana</a>')
+        else:
+            bot_parts.append(f'<a href="{links_map["maestro"].format(token_address=token_address)}">Maestro</a>')
+            bot_parts.append(f'<a href="{links_map["banana"].format(token_address=token_address)}">Banana</a>')
+            bot_parts.append(f'<a href="{links_map["uniswap"].format(token_address=token_address)}">Uniswap</a>')
+        lines.append("🤖 " + " | ".join(bot_parts))
 
     return "\n".join(lines)
 
@@ -334,13 +360,22 @@ def format_scan_result(
         jupiter_url = links_map["jupiter"].format(token_address=token_address)
         bubblemaps_url = links_map["bubblemaps"].format(token_address=token_address)
         photon_url = links_map["photon"].format(token_address=token_address)
+        axiom_url = links_map["axiom"].format(token_address=token_address)
         msg += (
             f'\n🔗 <a href="{chart_url}">Chart</a>'
             f' | <a href="{birdeye_url}">Birdeye</a>'
             f' | <a href="{photon_url}">Photon</a>'
-            f' | <a href="{bubblemaps_url}">Holders</a>'
+            f' | <a href="{axiom_url}">Axiom</a>'
             f'\n⚠️ <a href="{rugcheck_url}">Rugcheck</a>'
-            f' | 🔄 <a href="{jupiter_url}">Swap on Jupiter</a>'
+            f' | <a href="{bubblemaps_url}">Holders</a>'
+            f' | 🔄 <a href="{jupiter_url}">Jupiter</a>'
+        )
+        # Trading bot quick-buy
+        msg += (
+            f'\n🤖 <a href="{links_map["trojan"].format(token_address=token_address)}">Trojan</a>'
+            f' | <a href="{links_map["bonkbot"].format(token_address=token_address)}">BonkBot</a>'
+            f' | <a href="{links_map["maestro"].format(token_address=token_address)}">Maestro</a>'
+            f' | <a href="{links_map["banana"].format(token_address=token_address)}">Banana</a>'
         )
     else:
         dextools_url = links_map["dextools"].format(token_address=token_address)
@@ -350,7 +385,12 @@ def format_scan_result(
             f'\n🔗 <a href="{chart_url}">Chart</a>'
             f' | <a href="{dextools_url}">DexTools</a>'
             f' | <a href="{bubblemaps_url}">Holders</a>'
-            f'\n🔄 <a href="{uniswap_url}">Swap on Uniswap</a>'
+            f'\n🔄 <a href="{uniswap_url}">Uniswap</a>'
+        )
+        # Trading bot quick-buy
+        msg += (
+            f' | 🤖 <a href="{links_map["maestro"].format(token_address=token_address)}">Maestro</a>'
+            f' | <a href="{links_map["banana"].format(token_address=token_address)}">Banana</a>'
         )
 
     if recent_txs:

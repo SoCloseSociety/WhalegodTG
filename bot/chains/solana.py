@@ -203,8 +203,8 @@ def parse_helius_event(event: dict[str, Any]) -> list[dict[str, Any]]:
         if sol_amount < 1:  # Skip dust
             continue
 
-        # Skip Jito tip payments (MEV tips are noise for whale tracking)
-        if to_addr in _JITO_TIP_ACCOUNTS and sol_amount < 10:
+        # Skip all Jito tip payments (MEV tips are noise for whale tracking)
+        if to_addr in _JITO_TIP_ACCOUNTS:
             continue
 
         results.append({
