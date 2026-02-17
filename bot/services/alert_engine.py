@@ -46,6 +46,12 @@ _flood_resume_checks: int = 0
 # Track last event per chain for health checks
 last_event_time: dict[str, str] = {}
 
+# In-memory dedup: prevents race conditions between concurrent tasks
+# (webhook + poller + tracked wallet checker can overlap)
+_seen_tx_hashes: dict[str, float] = {}  # tx_hash:chain → timestamp
+_SEEN_MAX_SIZE: int = 2000
+_SEEN_TTL: float = 600.0  # 10 minutes
+
 # ---------------------------------------------------------------------------
 # Subscription cache (avoid DB query on every alert)
 # ---------------------------------------------------------------------------
@@ -153,12 +159,28 @@ async def _pipeline(
     session: aiohttp.ClientSession,
     bot: Bot,
 ) -> None:
-    """Full pipeline: enrich → classify → dedup → log → broadcast."""
+    """Full pipeline: dedup → enrich → classify → log → broadcast."""
     chain = transfer["chain"]
+    tx_hash = transfer.get("tx_hash", "")
     from_addr = transfer.get("from_address", "")
     to_addr = transfer.get("to_address", "")
     amount = transfer.get("amount", 0)
     token_address = transfer.get("token_address", "")
+
+    # Step 0: Fast in-memory dedup (catches race conditions between
+    # concurrent webhook events, ETH poller, and tracked wallet checker)
+    dedup_key = f"{tx_hash}:{chain}"
+    now = time.monotonic()
+    if dedup_key in _seen_tx_hashes:
+        return  # Already processing or processed
+    _seen_tx_hashes[dedup_key] = now
+
+    # Prune old entries periodically
+    if len(_seen_tx_hashes) > _SEEN_MAX_SIZE:
+        cutoff = now - _SEEN_TTL
+        stale = [k for k, ts in _seen_tx_hashes.items() if ts < cutoff]
+        for k in stale:
+            del _seen_tx_hashes[k]
 
     # Step 1: Enrich — get USD price
     usd_value = await _enrich_price(session, chain, token_address, amount)
@@ -368,12 +390,19 @@ def _classify(
 # Broadcast
 # ---------------------------------------------------------------------------
 
+_TELEGRAM_MAX_LEN: int = 4096
+
+
 async def _broadcast(
     message: str,
     bot: Bot,
     transfer: dict[str, Any],
 ) -> None:
     """Send an alert to all enabled subscriptions that pass threshold/filter checks."""
+    # Telegram message limit is 4096 chars — truncate safely
+    if len(message) > _TELEGRAM_MAX_LEN:
+        message = message[:_TELEGRAM_MAX_LEN - 20] + "\n\n<i>…truncated</i>"
+
     subs = await _get_subs_cached()
     usd_value = transfer.get("usd_value", 0) if transfer else 0
     tx_category = transfer.get("tx_category", "") if transfer else ""

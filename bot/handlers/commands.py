@@ -533,13 +533,40 @@ async def cmd_trending(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         if chain_id not in ("solana", "ethereum"):
             continue
 
+        # Skip tokens that failed enrichment
+        if name == "Unknown" and symbol == "???":
+            continue
+
         c = chain_emoji(chain_id)
         chart_link = f"https://dexscreener.com/{chain_id}/{token_addr}"
 
-        msg += (
-            f"{count + 1}. {c} <b>{name}</b> (${symbol})\n"
-            f'   🔗 <a href="{chart_link}">Chart</a> • 🚀 Boosted\n\n'
-        )
+        # Price and change info (from enrichment)
+        price_str = ""
+        price_usd = token.get("priceUsd", "")
+        if price_usd:
+            try:
+                p = float(price_usd)
+                price_str = f"${p:,.6f}" if p < 0.01 else f"${p:,.4f}" if p < 1 else f"${p:,.2f}"
+            except (ValueError, TypeError):
+                pass
+
+        change_str = ""
+        change_24h = token.get("priceChange24h", 0)
+        if change_24h:
+            try:
+                ch = float(change_24h)
+                arrow = "📈" if ch >= 0 else "📉"
+                change_str = f" {arrow} {ch:+.1f}%"
+            except (ValueError, TypeError):
+                pass
+
+        line = f"{count + 1}. {c} <b>{name}</b> (${symbol})"
+        if price_str:
+            line += f" — {price_str}"
+        if change_str:
+            line += change_str
+        line += f'\n   🔗 <a href="{chart_link}">Chart</a> • 🚀 Boosted\n\n'
+        msg += line
         count += 1
 
     if count == 0:

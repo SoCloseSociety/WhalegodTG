@@ -144,11 +144,15 @@ async def helius_webhook_handler(request: web.Request) -> web.Response:
         logger.error("Helius webhook: bot or session not ready")
         return web.Response(status=503, text="Not ready")
 
+    seen_sigs: set[str] = set()
     for event in body:
         if not isinstance(event, dict) or "signature" not in event:
             logger.warning("Helius webhook: skipping event without signature")
             continue
-        # Process each event asynchronously — don't block the response
+        sig = event["signature"]
+        if sig in seen_sigs:
+            continue  # Skip duplicate within same batch
+        seen_sigs.add(sig)
         asyncio.create_task(_safe_process_event(event, session, bot))
 
     return web.Response(status=200, text="OK")

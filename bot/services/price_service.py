@@ -187,7 +187,7 @@ async def get_token_info_dexscreener(
 
 
 async def get_trending_tokens(session: aiohttp.ClientSession) -> list[dict[str, Any]]:
-    """Fetch trending/boosted tokens from DexScreener."""
+    """Fetch trending/boosted tokens from DexScreener, enriched with token details."""
     url = "https://api.dexscreener.com/token-boosts/latest/v1"
 
     async def _fetch() -> aiohttp.ClientResponse:
@@ -203,11 +203,79 @@ async def get_trending_tokens(session: aiohttp.ClientSession) -> list[dict[str, 
             return []
         data = await resp.json()
         last_success["dexscreener"] = time.monotonic()
-        if isinstance(data, list):
-            return data[:20]  # Get top 20 for filtering
-        return []
+        if not isinstance(data, list) or not data:
+            return []
+
+        # Boosted API only returns chainId + tokenAddress — no name/symbol.
+        # Batch-enrich with token details (1 call per chain, up to 30 addresses).
+        boosted = data[:30]
+        chain_addrs: dict[str, list[str]] = {}
+        for t in boosted:
+            cid = t.get("chainId", "")
+            addr = t.get("tokenAddress", "")
+            if cid and addr:
+                chain_addrs.setdefault(cid, []).append(addr)
+
+        # Fetch token details per chain
+        details_map: dict[str, dict[str, Any]] = {}
+        for chain_id, addrs in chain_addrs.items():
+            unique = list(dict.fromkeys(addrs))[:30]
+            details = await _batch_token_details(session, chain_id, unique)
+            for pair in details:
+                base = pair.get("baseToken", {})
+                addr = base.get("address", "")
+                if addr:
+                    key = f"{chain_id}:{addr}"
+                    # Keep the pair with highest liquidity
+                    if key not in details_map or \
+                       float(pair.get("liquidity", {}).get("usd", 0) or 0) > \
+                       float(details_map[key].get("liquidity", {}).get("usd", 0) or 0):
+                        details_map[key] = pair
+
+        # Merge details into boosted tokens
+        for t in boosted:
+            key = f"{t.get('chainId')}:{t.get('tokenAddress')}"
+            pair = details_map.get(key)
+            if pair:
+                base = pair.get("baseToken", {})
+                t["name"] = base.get("name", "Unknown")
+                t["symbol"] = base.get("symbol", "???")
+                t["priceUsd"] = pair.get("priceUsd", "")
+                t["priceChange24h"] = pair.get("priceChange", {}).get("h24", 0)
+                t["liquidity"] = pair.get("liquidity", {}).get("usd", 0)
+
+        return boosted
     except Exception:
         logger.exception("DexScreener trending parse error")
+        return []
+    finally:
+        resp.release()
+
+
+async def _batch_token_details(
+    session: aiohttp.ClientSession, chain_id: str, addresses: list[str]
+) -> list[dict[str, Any]]:
+    """Batch-fetch token pair details from DexScreener (up to 30 addresses)."""
+    if not addresses:
+        return []
+    addr_str = ",".join(addresses[:30])
+    url = f"https://api.dexscreener.com/tokens/v1/{chain_id}/{addr_str}"
+
+    async def _fetch() -> aiohttp.ClientResponse:
+        async with RATE_LIMITERS["dexscreener_pairs"]:
+            return await session.get(url, timeout=aiohttp.ClientTimeout(total=15))
+
+    resp = await retry_async(_fetch)
+    if resp is None or not isinstance(resp, aiohttp.ClientResponse):
+        return []
+
+    try:
+        if resp.status != 200:
+            return []
+        data = await resp.json()
+        return data if isinstance(data, list) else []
+    except Exception:
+        logger.exception("DexScreener batch token details error")
         return []
     finally:
         resp.release()
