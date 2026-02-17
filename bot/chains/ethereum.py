@@ -253,7 +253,8 @@ async def get_internal_transactions(
 
 
 async def get_gas_oracle(session: aiohttp.ClientSession) -> dict[str, Any] | None:
-    """Fetch gas prices from Etherscan gas tracker."""
+    """Fetch gas prices from Etherscan gas tracker, with Alchemy RPC fallback."""
+    # Source 1: Etherscan gas oracle (detailed slow/standard/fast)
     url = (
         f"{ETHERSCAN_BASE_URL}?module=gastracker&action=gasoracle"
         f"&apikey={ETHERSCAN_API_KEY}"
@@ -264,27 +265,39 @@ async def get_gas_oracle(session: aiohttp.ClientSession) -> dict[str, Any] | Non
             return await session.get(url, timeout=aiohttp.ClientTimeout(total=10))
 
     resp = await retry_async(_fetch)
-    if resp is None or not isinstance(resp, aiohttp.ClientResponse):
-        return None
+    if resp is not None and isinstance(resp, aiohttp.ClientResponse):
+        try:
+            if resp.status == 200:
+                data = await resp.json()
+                result = data.get("result", {})
+                if isinstance(result, dict) and result.get("SafeGasPrice"):
+                    return {
+                        "slow": float(result.get("SafeGasPrice", 0)),
+                        "standard": float(result.get("ProposeGasPrice", 0)),
+                        "fast": float(result.get("FastGasPrice", 0)),
+                        "base_fee": float(result.get("suggestBaseFee", 0)),
+                    }
+        except Exception:
+            logger.exception("Etherscan gas oracle parse error")
+        finally:
+            resp.release()
 
-    try:
-        if resp.status != 200:
-            return None
-        data = await resp.json()
-        result = data.get("result", {})
-        if isinstance(result, dict) and result.get("SafeGasPrice"):
+    # Source 2: Alchemy RPC fallback (eth_gasPrice — single value, estimate tiers)
+    logger.debug("Etherscan gas oracle failed, falling back to Alchemy RPC")
+    gas_hex = await _rpc_call(session, "eth_gasPrice")
+    if gas_hex:
+        try:
+            gwei = int(gas_hex, 16) / 1e9
             return {
-                "slow": float(result.get("SafeGasPrice", 0)),
-                "standard": float(result.get("ProposeGasPrice", 0)),
-                "fast": float(result.get("FastGasPrice", 0)),
-                "base_fee": float(result.get("suggestBaseFee", 0)),
+                "slow": round(gwei * 0.85, 1),
+                "standard": round(gwei, 1),
+                "fast": round(gwei * 1.15, 1),
+                "base_fee": round(gwei, 1),
             }
-        return None
-    except Exception:
-        logger.exception("Etherscan gas oracle parse error")
-        return None
-    finally:
-        resp.release()
+        except (ValueError, TypeError):
+            pass
+
+    return None
 
 
 async def get_eth_price_etherscan(session: aiohttp.ClientSession) -> float | None:

@@ -143,6 +143,7 @@ SOLANA_LINKS: dict[str, str] = {
     "jupiter":    "https://jup.ag/swap/SOL-{token_address}",
     # Wallet dashboards
     "gmgn":       "https://gmgn.ai/sol/address/{address}",
+    "gmgn_token": "https://gmgn.ai/sol/token/{token_address}",
     "cielo":      "https://app.cielo.finance/profile/{address}/tokens/solana",
     "step":       "https://app.step.finance/en/dashboard?watching={address}",
     "sonarwatch": "https://sonar.watch/portfolio/{address}",

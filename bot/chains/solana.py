@@ -308,20 +308,58 @@ async def enrich_transactions(
 # ---------------------------------------------------------------------------
 
 async def get_priority_fee(session: aiohttp.ClientSession) -> dict[str, Any] | None:
-    """Get priority fee estimates from Helius RPC."""
+    """Get priority fee estimates from Helius RPC.
+
+    Tries getPriorityFeeEstimate (Helius-specific) first, then falls back to
+    getRecentPrioritizationFees (standard Solana RPC).
+    """
     url = f"https://mainnet.helius-rpc.com/?api-key={HELIUS_API_KEY}"
-    payload = {
+
+    # Method 1: Helius-specific getPriorityFeeEstimate (more reliable)
+    payload_estimate = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "getPriorityFeeEstimate",
+        "params": [{"options": {"includeAllPriorityFeeLevels": True}}],
+    }
+
+    async def _fetch_estimate() -> aiohttp.ClientResponse:
+        async with RATE_LIMITERS["helius"]:
+            return await session.post(url, json=payload_estimate, timeout=aiohttp.ClientTimeout(total=10))
+
+    resp = await retry_async(_fetch_estimate)
+    if resp is not None and isinstance(resp, aiohttp.ClientResponse):
+        try:
+            if resp.status == 200:
+                data = await resp.json()
+                result = data.get("result", {})
+                levels = result.get("priorityFeeLevels", {})
+                if levels:
+                    return {
+                        "min": float(levels.get("min", 0)),
+                        "low": float(levels.get("low", 0)),
+                        "avg": float(levels.get("medium", 0)),
+                        "max": float(levels.get("veryHigh", 0)),
+                        "median": float(levels.get("high", 0)),
+                    }
+        except Exception:
+            logger.debug("Helius getPriorityFeeEstimate parse error, trying fallback")
+        finally:
+            resp.release()
+
+    # Method 2: Standard Solana RPC fallback
+    payload_recent = {
         "jsonrpc": "2.0",
         "id": 1,
         "method": "getRecentPrioritizationFees",
         "params": [],
     }
 
-    async def _fetch() -> aiohttp.ClientResponse:
+    async def _fetch_recent() -> aiohttp.ClientResponse:
         async with RATE_LIMITERS["helius"]:
-            return await session.post(url, json=payload, timeout=aiohttp.ClientTimeout(total=10))
+            return await session.post(url, json=payload_recent, timeout=aiohttp.ClientTimeout(total=10))
 
-    resp = await retry_async(_fetch)
+    resp = await retry_async(_fetch_recent)
     if resp is None or not isinstance(resp, aiohttp.ClientResponse):
         return None
 

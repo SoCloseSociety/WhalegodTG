@@ -69,11 +69,11 @@ def build_smart_links(
     if row1:
         lines.append("📜 " + " | ".join(row1))
 
-    # Row 2: Sender wallet tracking links
+    # Row 2: Sender wallet tracking links (with address label)
     if from_address:
-        sender_parts: list[str] = []
+        short_from = shorten_address(from_address)
         wallet_url = links_map["wallet"].format(address=from_address)
-        sender_parts.append(f'<a href="{wallet_url}">Explorer</a>')
+        sender_parts: list[str] = [f'<a href="{wallet_url}">{short_from}</a>']
         if chain == "solana":
             sender_parts.append(f'<a href="{links_map["gmgn"].format(address=from_address)}">GMGN</a>')
             sender_parts.append(f'<a href="{links_map["cielo"].format(address=from_address)}">Cielo</a>')
@@ -86,9 +86,9 @@ def build_smart_links(
 
     # Row 3: Receiver wallet tracking links (skip if same as sender)
     if to_address and not _addrs_match(from_address, to_address):
-        recv_parts: list[str] = []
+        short_to = shorten_address(to_address)
         wallet_url = links_map["wallet"].format(address=to_address)
-        recv_parts.append(f'<a href="{wallet_url}">Explorer</a>')
+        recv_parts: list[str] = [f'<a href="{wallet_url}">{short_to}</a>']
         if chain == "solana":
             recv_parts.append(f'<a href="{links_map["gmgn"].format(address=to_address)}">GMGN</a>')
             recv_parts.append(f'<a href="{links_map["cielo"].format(address=to_address)}">Cielo</a>')

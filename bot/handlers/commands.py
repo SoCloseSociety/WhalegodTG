@@ -567,18 +567,27 @@ async def cmd_trending(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         if change_str:
             line += change_str
 
-        # Chart + trading bot quick-buy links
+        # Analysis links + trading bot quick-buy links
         links = SOLANA_LINKS if chain_id == "solana" else ETH_LINKS
-        line += f'\n   🔗 <a href="{chart_link}">Chart</a>'
         if chain_id == "solana":
             line += (
-                f' | 🤖 <a href="{links["trojan"].format(token_address=token_addr)}">Trojan</a>'
+                f'\n   🔗 <a href="{chart_link}">DexScreener</a>'
+                f' | <a href="{links["birdeye"].format(token_address=token_addr)}">Birdeye</a>'
+                f' | <a href="{links["gmgn_token"].format(token_address=token_addr)}">GMGN</a>'
+                f' | <a href="{links["axiom"].format(token_address=token_addr)}">Axiom</a>'
+                f'\n   🤖 <a href="{links["trojan"].format(token_address=token_addr)}">Trojan</a>'
                 f' | <a href="{links["bonkbot"].format(token_address=token_addr)}">BonkBot</a>'
+                f' | <a href="{links["maestro"].format(token_address=token_addr)}">Maestro</a>'
+                f' | <a href="{links["banana"].format(token_address=token_addr)}">Banana</a>'
             )
         else:
             line += (
-                f' | 🤖 <a href="{links["maestro"].format(token_address=token_addr)}">Maestro</a>'
+                f'\n   🔗 <a href="{chart_link}">DexScreener</a>'
+                f' | <a href="{links["dextools"].format(token_address=token_addr)}">DexTools</a>'
+                f' | <a href="{links["bubblemaps"].format(token_address=token_addr)}">Holders</a>'
+                f'\n   🤖 <a href="{links["maestro"].format(token_address=token_addr)}">Maestro</a>'
                 f' | <a href="{links["banana"].format(token_address=token_addr)}">Banana</a>'
+                f' | <a href="{links["uniswap"].format(token_address=token_addr)}">Uniswap</a>'
             )
         line += "\n\n"
 
@@ -651,6 +660,10 @@ async def cmd_gas(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await _reply(update, "❌ bot is still warming up ser — try again in a sec 🔄")
         return
 
+    loading_msg = await _reply_edit(update, "⛽ fetching gas prices... 🔄")
+    if not loading_msg:
+        return
+
     gas_oracle = await eth_chain.get_gas_oracle(session)
     sol_fees = await sol_chain.get_priority_fee(session)
 
@@ -672,27 +685,52 @@ async def cmd_gas(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
         msg += (
             f"⟠ <b>Ethereum Gas</b>\n"
-            f"   🐢 Slow: <b>{slow:.0f}</b> gwei\n"
-            f"   🚶 Standard: <b>{standard:.0f}</b> gwei\n"
-            f"   🚀 Fast: <b>{fast:.0f}</b> gwei\n"
+            f"   🐢 Slow: <b>{slow:.1f}</b> gwei\n"
+            f"   🚶 Standard: <b>{standard:.1f}</b> gwei\n"
+            f"   🚀 Fast: <b>{fast:.1f}</b> gwei\n"
             f"   <i>{gas_comment}</i>\n"
             f'   🔗 <a href="https://etherscan.io/gastracker">Live Gas Tracker</a>\n\n'
         )
     else:
-        msg += "⟠ <b>Ethereum Gas</b>: unavailable rn 😔\n\n"
+        msg += (
+            "⟠ <b>Ethereum Gas</b>\n"
+            "   could not fetch gas data — APIs may be rate-limited 😔\n"
+            '   🔗 <a href="https://etherscan.io/gastracker">Check manually</a>\n\n'
+        )
 
     if sol_fees:
+        avg_fee = sol_fees.get("avg", 0)
+        median_fee = sol_fees.get("median", 0)
+        # Convert micro-lamports to approximate SOL cost for a typical tx (~200k CU)
+        sol_cost_approx = (avg_fee * 200_000) / 1e15  # micro-lamports → SOL
+
+        if avg_fee < 10_000:
+            sol_comment = "fees are basically free, based chain energy 😎"
+        elif avg_fee < 100_000:
+            sol_comment = "fees are low, normal network activity 👍"
+        elif avg_fee < 1_000_000:
+            sol_comment = "fees are elevated, network is busy 🔥"
+        else:
+            sol_comment = "fees are high! congestion on-chain 🚨"
+
         msg += (
             f"◎ <b>Solana Priority Fees</b>\n"
-            f"   Min: {sol_fees['min']:,.0f} micro-lamports\n"
-            f"   Avg: {sol_fees['avg']:,.0f} micro-lamports\n"
-            f"   Max: {sol_fees['max']:,.0f} micro-lamports\n"
-            f"   <i>solana fees still basically free, based chain 😎</i>\n"
+            f"   📊 Avg: <b>{avg_fee:,.0f}</b> micro-lamports\n"
+            f"   📈 Median: <b>{median_fee:,.0f}</b> micro-lamports\n"
+            f"   ↕️ Range: {sol_fees.get('min', 0):,.0f} — {sol_fees.get('max', 0):,.0f}\n"
         )
+        if sol_cost_approx > 0:
+            msg += f"   💰 ~{sol_cost_approx:.6f} SOL per tx (200k CU)\n"
+        msg += f"   <i>{sol_comment}</i>\n"
     else:
-        msg += "◎ <b>Solana Fees</b>: still basically free ser 😎 based chain energy\n"
+        msg += (
+            "◎ <b>Solana Priority Fees</b>\n"
+            "   Solana base fee: <b>0.000005 SOL</b> (~$0.001)\n"
+            "   Priority fees: minimal for most txs\n"
+            "   <i>still the cheapest chain in crypto ser 😎</i>\n"
+        )
 
-    await _reply(update, msg)
+    await loading_msg.edit_text(msg, parse_mode="HTML", disable_web_page_preview=True)
 
 
 # ---------------------------------------------------------------------------
@@ -775,8 +813,22 @@ async def cmd_donate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     if DONATE_USDT_TRC20:
         msg += f"💵 <b>USDT (TRC-20):</b>\n<code>{DONATE_USDT_TRC20}</code>\n\n"
 
-    if not any([DONATE_SOL, DONATE_ETH, DONATE_BTC, DONATE_USDT_TRC20]):
-        msg += "<i>donation wallets not configured yet 😢</i>\n\n"
+    has_wallets = any([DONATE_SOL, DONATE_ETH, DONATE_BTC, DONATE_USDT_TRC20])
+
+    if not has_wallets:
+        # Admin-friendly message
+        if _is_bot_admin(update):
+            msg += (
+                "⚠️ <b>No donation wallets configured!</b>\n\n"
+                "Add your wallet addresses in <code>.env</code>:\n"
+                "<code>DONATE_SOL=your_sol_address</code>\n"
+                "<code>DONATE_ETH=your_eth_address</code>\n"
+                "<code>DONATE_BTC=your_btc_address</code>\n"
+                "<code>DONATE_USDT_TRC20=your_trc20_address</code>\n\n"
+                "<i>then restart the bot to activate 🔄</i>\n\n"
+            )
+        else:
+            msg += "<i>donations coming soon ser — stay tuned 👀</i>\n\n"
 
     msg += (
         "<i>every satoshi helps keep the whale watching alive 🐋💎\n"
