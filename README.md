@@ -1,44 +1,136 @@
-# WHALEGOD 🐋
+<p align="center">
+  <img src="assets/banner.svg" alt="WHALEGOD" width="900">
+</p>
 
-**wen whale moves, we move first ser.**
+<p align="center">
+  <strong>On-chain whale tracker for Solana & Ethereum — wen whale moves, we move first ser.</strong>
+</p>
 
-![Chains](https://img.shields.io/badge/chains-Solana%20%7C%20Ethereum-blue)
-![Cost](https://img.shields.io/badge/API%20cost-%240-brightgreen)
-![Vibe](https://img.shields.io/badge/vibe-based-purple)
-![Python](https://img.shields.io/badge/python-3.11%2B-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-575ECF?style=flat-square" alt="License: MIT"></a>
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/Python-3.11%2B-575ECF?style=flat-square&logo=python&logoColor=white" alt="Python 3.11+"></a>
+  <img src="https://img.shields.io/badge/Chains-Solana%20%7C%20Ethereum-575ECF?style=flat-square" alt="Chains">
+  <img src="https://img.shields.io/badge/API%20Cost-$0-575ECF?style=flat-square" alt="$0 API Cost">
+  <a href="https://github.com/SoCloseSociety/WhalegodTG/stargazers"><img src="https://img.shields.io/github/stars/SoCloseSociety/WhalegodTG?style=flat-square&color=575ECF" alt="Stars"></a>
+  <a href="https://github.com/SoCloseSociety/WhalegodTG/issues"><img src="https://img.shields.io/github/issues/SoCloseSociety/WhalegodTG?style=flat-square&color=575ECF" alt="Issues"></a>
+</p>
 
-The most based on-chain whale movement tracker for Solana and Ethereum. Real-time alerts, zero BS, pure alpha. All data fetched live from free APIs — zero hardcoded data, zero stubs.
-
----
-
-## Features
-
-- **Real-time Whale Alerts** — Solana via Helius webhooks, Ethereum via block polling
-- **Multi-chain** — Solana (SOL) + Ethereum (ETH) tracked simultaneously
-- **Smart Classification** — CEX deposits/withdrawals, DEX swaps, LP events, bridges, wallet transfers
-- **Bullish/Bearish Signals** — Each whale movement classified with market signal
-- **Known Wallet Labels** — 50+ exchanges, bridges, DEXs, and protocols identified
-- **Customizable Thresholds** — Per-chat settings for SOL/ETH/USD/LP minimums
-- **Category Filters** — Toggle CEX, DEX, LP, bridge alerts independently
-- **Wallet Tracking** — Stalk up to 10 wallets per user with notifications
-- **Token Scanner** — Scan any token for price, volume, liquidity, and links
-- **Trending Tokens** — DexScreener boosted/trending tokens feed
-- **Gas Tracker** — ETH gas prices + SOL priority fees
-- **Anti-Flood Protection** — Automatic digest mode during whale storms
-- **Smart Links** — Every alert includes explorer, chart, analysis, and swap links
-- **Degen Commentary** — 100+ randomized whale quotes in full memecoin culture
-- **Docker Deployable** — Single command deploy with health checks
-- **$0 API Costs** — All free-tier APIs, no credit card required
+<p align="center">
+  <a href="#quick-start">Quick Start</a> &bull;
+  <a href="#key-features">Features</a> &bull;
+  <a href="#bot-commands">Commands</a> &bull;
+  <a href="#faq">FAQ</a> &bull;
+  <a href="#contributing">Contributing</a>
+</p>
 
 ---
 
-## Supported Chains
+## What is WHALEGOD?
 
-| Chain | Data Sources | Method | Cost |
-|-------|-------------|--------|------|
-| **Solana** | Helius, DexScreener, Jupiter | Webhooks + polling | $0 |
-| **Ethereum** | Alchemy, Etherscan, DexScreener | Block polling (60s) | $0 |
+**WHALEGOD** is a free, open-source Telegram bot that tracks whale movements on Solana and Ethereum in real-time. It classifies transactions into 14 categories (CEX flows, DEX swaps, LP events, bridge transfers, memecoin launches, smart money moves, MEV...), enriches them with price data, and delivers formatted alerts to your Telegram group.
+
+Zero API cost — runs entirely on free tiers (Helius, Alchemy, Etherscan, DexScreener).
+
+### Who is this for?
+
+- **Crypto Traders** who want to front-run whale moves
+- **DeFi Degens** tracking smart money and LP activity
+- **Trading Groups** looking for a whale alert bot
+- **Memecoin Traders** catching early Pump.fun launches
+- **Developers** learning async Python + blockchain APIs
+
+### Key Features
+
+- **Multi-Chain** — Solana (Helius webhooks) + Ethereum (Alchemy RPC)
+- **Real-Time** — Solana via push webhooks, ETH via 60s block polling
+- **14 Transaction Categories** — CEX, DEX, LP, Bridge, Memecoin, Smart Money, MEV...
+- **Smart Classification** — Bullish/bearish/neutral/degen/alpha signals
+- **50+ Wallet Labels** — Known exchanges, bridges, protocols auto-identified
+- **Customizable Thresholds** — Per-chat SOL/ETH/USD/LP minimums
+- **Wallet Tracking** — Track up to 10 custom wallets per user
+- **Anti-Flood** — Automatic digest mode during whale storms (>20 events/min)
+- **Deduplication** — 2000-tx cache prevents duplicate alerts
+- **Rate Limiting** — Per-API semaphores for safe usage
+- **Price Caching** — Multi-source with fallback (Jupiter → DexScreener → CoinGecko)
+- **Docker Ready** — One-command deployment with health checks
+- **$0 API Cost** — Runs on free tiers only
+- **Free & Open Source** — MIT license
+
+---
+
+## Quick Start
+
+### With Docker (recommended)
+
+```bash
+git clone https://github.com/SoCloseSociety/WhalegodTG.git
+cd WhalegodTG
+cp .env.example .env
+# Edit .env with your API keys
+docker compose up -d
+```
+
+### Manual
+
+```bash
+git clone https://github.com/SoCloseSociety/WhalegodTG.git
+cd WhalegodTG
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+# Edit .env with your API keys
+python -m bot
+```
+
+### Free API Keys
+
+| Service | Sign Up | Free Tier |
+|---------|---------|-----------|
+| **Telegram** | [@BotFather](https://t.me/BotFather) | Unlimited |
+| **Helius** | [helius.dev](https://helius.dev) | 1M credits/month |
+| **Alchemy** | [alchemy.com](https://alchemy.com) | 300M compute units/month |
+| **Etherscan** | [etherscan.io](https://etherscan.io/apis) | 5 req/sec |
+
+---
+
+## How It Works
+
+```
+Solana (Helius Webhook)     Ethereum (Alchemy RPC)
+         │                           │
+         └───────────┬───────────────┘
+                     ▼
+         ┌───────────────────────┐
+         │    Alert Engine       │
+         │                      │
+         │  Parse → Enrich →    │
+         │  Classify → Dedup →  │
+         │  Log → Format → Send │
+         └───────────────────────┘
+                     │
+                     ▼
+         ┌───────────────────────┐
+         │   Telegram Groups     │
+         │   (formatted alerts)  │
+         └───────────────────────┘
+```
+
+### Transaction Categories
+
+| Category | Signal | Example |
+|----------|--------|---------|
+| CEX Deposit | Bearish | Whale sends 500 SOL to Binance |
+| CEX Withdrawal | Bullish | 1000 ETH withdrawn from Coinbase |
+| DEX Swap | Varies | Large swap on Jupiter/Uniswap |
+| LP Add | Bullish | New liquidity added to pool |
+| LP Remove | Bearish | Liquidity pulled from pool |
+| Bridge Transfer | Neutral | Cross-chain move |
+| Memecoin Launch | Degen | New Pump.fun token |
+| Smart Money | Alpha | VC/fund wallet moves |
+| MEV Activity | Caution | Sandwich attack detected |
+| Accumulation | Bullish | Repeated buys over time |
+| Distribution | Bearish | Systematic selling |
 
 ---
 
@@ -46,198 +138,154 @@ The most based on-chain whale movement tracker for Solana and Ethereum. Real-tim
 
 | Command | Description |
 |---------|-------------|
-| `/start` | Welcome message + auto-subscribe |
+| `/start` | Subscribe to whale alerts |
 | `/whale [sol\|eth]` | Recent whale movements |
-| `/top [24h\|1h\|7d]` | Biggest moves by volume |
+| `/top [24h\|1h\|7d]` | Top moves by volume |
 | `/track <address> [label]` | Track a wallet |
-| `/untrack <address>` | Stop tracking a wallet |
-| `/watchlist` | Your tracked wallets |
-| `/scan <token>` | Scan a token (price, volume, liquidity) |
-| `/trending` | Trending/boosted tokens |
-| `/chains` | Chain status + live prices |
-| `/gas` | ETH gas + SOL priority fees |
-| `/settings` | Alert preferences (inline keyboard) |
+| `/untrack <address>` | Stop tracking |
+| `/watchlist` | View tracked wallets |
+| `/scan <token>` | Token analysis |
+| `/trending` | Trending tokens |
+| `/chains` | Chain status & prices |
+| `/gas` | ETH gas + SOL fees |
+| `/settings` | Configure thresholds |
 | `/stats` | Bot statistics |
-| `/donate` | Support WHALEGOD |
 | `/help` | Full command reference |
 
 ---
 
-## Architecture
+## Configuration
 
-```
-                    ┌─────────────────┐
-                    │   Telegram Bot   │
-                    │   (Commands)     │
-                    └────────┬────────┘
-                             │
-              ┌──────────────┼──────────────┐
-              │              │              │
-    ┌─────────▼──────┐  ┌───▼────┐  ┌──────▼───────┐
-    │ Helius Webhook  │  │ Alchemy │  │  Etherscan   │
-    │ (Solana events) │  │  (RPC)  │  │  (ETH data)  │
-    └─────────┬──────┘  └───┬────┘  └──────┬───────┘
-              │              │              │
-              └──────────────┼──────────────┘
-                             │
-                    ┌────────▼────────┐
-                    │  Alert Engine    │
-                    │  (Core Pipeline) │
-                    │                  │
-                    │ Parse → Enrich → │
-                    │ Classify → Label │
-                    │ → Dedup → Log → │
-                    │ Format → Send    │
-                    └────────┬────────┘
-                             │
-              ┌──────────────┼──────────────┐
-              │              │              │
-    ┌─────────▼──────┐ ┌────▼─────┐ ┌──────▼──────┐
-    │ Price Service   │ │  Label   │ │   SQLite    │
-    │ Jupiter/DexScr  │ │ Service  │ │  Database   │
-    │ /CoinGecko     │ │          │ │  (WAL mode) │
-    └────────────────┘ └──────────┘ └─────────────┘
-```
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `TELEGRAM_BOT_TOKEN` | Bot token from @BotFather | Yes |
+| `HELIUS_API_KEY` | Solana RPC + webhooks | Yes |
+| `ALCHEMY_API_KEY` | Ethereum RPC | Yes |
+| `ETHERSCAN_API_KEY` | Block data & gas | Yes |
+| `COINGECKO_API_KEY` | Price fallback | Optional |
+| `WEBHOOK_HOST` | Public URL for Helius webhooks | Optional |
+| `DEFAULT_SOL_THRESHOLD` | Min SOL for alerts (default: 500) | No |
+| `DEFAULT_ETH_THRESHOLD` | Min ETH for alerts (default: 50) | No |
+| `DEFAULT_USD_THRESHOLD` | Min USD for alerts (default: 50000) | No |
 
 ---
 
-## Quick Deploy
+## Project Structure
 
-### 1. Clone
-
-```bash
-git clone https://github.com/your-repo/whalegod-bot.git
-cd whalegod-bot
 ```
-
-### 2. Configure
-
-```bash
-cp .env.example .env
-nano .env  # Add your API keys
-```
-
-### 3. Deploy
-
-```bash
-chmod +x deploy.sh
-./deploy.sh
-```
-
-That's it ser. WHALEGOD is live. LFG 🚀
-
----
-
-## Manual Docker Commands
-
-```bash
-# Build
-docker compose build
-
-# Start
-docker compose up -d
-
-# Logs
-docker compose logs -f whalegod
-
-# Restart
-docker compose restart whalegod
-
-# Stop
-docker compose down
-
-# Health check
-curl http://localhost:8080/health
+WhalegodTG/
+├── bot/
+│   ├── main.py              # Entry point & event loop
+│   ├── config.py            # Environment & constants
+│   ├── database.py          # SQLite schema & queries
+│   ├── chains/
+│   │   ├── solana.py        # Helius integration
+│   │   └── ethereum.py      # Alchemy/Etherscan integration
+│   ├── handlers/
+│   │   ├── commands.py      # Bot commands
+│   │   └── callbacks.py     # Inline button callbacks
+│   ├── services/
+│   │   ├── alert_engine.py  # Core pipeline
+│   │   ├── price_service.py # Token prices & caching
+│   │   └── label_service.py # Wallet identification
+│   └── utils/
+│       ├── formatter.py     # Message formatting
+│       ├── rate_limiter.py  # API rate limiting
+│       ├── retry.py         # Retry logic
+│       └── whale_quotes.py  # 100+ meme quotes
+├── Dockerfile
+├── docker-compose.yml
+├── deploy.sh
+└── requirements.txt
 ```
 
 ---
 
-## API Keys Setup
+## Troubleshooting
 
-All APIs are **free tier** — no credit card required.
+### Bot doesn't start
 
-| Service | Get Key At | Free Tier |
-|---------|-----------|-----------|
-| **Telegram Bot** | [@BotFather](https://t.me/BotFather) | Unlimited |
-| **Helius** | [helius.dev](https://helius.dev) | 1M credits/month |
-| **Alchemy** | [alchemy.com](https://www.alchemy.com) | 300M compute units/month |
-| **Etherscan** | [etherscan.io/apis](https://etherscan.io/apis) | 5 req/sec |
-| **CoinGecko** (optional) | [coingecko.com/en/api](https://www.coingecko.com/en/api) | 30 req/min |
+1. Check `.env` — all required keys must be set
+2. Verify Python 3.11+ with `python --version`
+3. For Docker: check `docker compose logs whalegod`
 
-### Steps:
-1. **Telegram**: Message @BotFather, create bot, get token
-2. **Helius**: Sign up, create project, copy API key
-3. **Alchemy**: Sign up, create Ethereum Mainnet app, copy API key
-4. **Etherscan**: Sign up, go to API Keys, create new key
-5. **CoinGecko** (optional): Sign up for demo API, get key
+### No Solana alerts
 
----
+1. Verify `HELIUS_API_KEY` is valid at helius.dev dashboard
+2. Check that `WEBHOOK_HOST` is publicly accessible (for webhooks)
+3. Bot logs webhook registration status on startup
 
-## Alert Links Reference
+### No Ethereum alerts
 
-### Solana Alerts Include:
-| Link | Destination |
-|------|------------|
-| Transaction | solscan.io/tx/... |
-| Wallet | solscan.io/account/... |
-| Chart | dexscreener.com/solana/... |
-| Analysis | birdeye.so/token/... |
-| Rugcheck | rugcheck.xyz/tokens/... |
-| Swap | jup.ag/swap/... |
-
-### Ethereum Alerts Include:
-| Link | Destination |
-|------|------------|
-| Transaction | etherscan.io/tx/... |
-| Wallet | etherscan.io/address/... |
-| Chart | dexscreener.com/ethereum/... |
-| Analysis | dextools.io/... |
-| Swap | app.uniswap.org/swap/... |
+1. Verify `ALCHEMY_API_KEY` and `ETHERSCAN_API_KEY`
+2. ETH polling runs every 60s — wait at least 2 minutes
+3. Check thresholds — default is 50 ETH minimum
 
 ---
 
-## Configuration Reference
+## FAQ
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `TELEGRAM_BOT_TOKEN` | Yes | — | Telegram bot token |
-| `HELIUS_API_KEY` | Yes | — | Helius API key (Solana) |
-| `ALCHEMY_API_KEY` | Yes | — | Alchemy API key (Ethereum) |
-| `ETHERSCAN_API_KEY` | Yes | — | Etherscan API key |
-| `COINGECKO_API_KEY` | No | — | CoinGecko demo API key |
-| `WEBHOOK_HOST` | No | — | VPS IP/domain for Helius webhooks |
-| `WEBHOOK_PORT` | No | 9876 | Webhook listener port |
-| `DEFAULT_SOL_THRESHOLD` | No | 500 | Min SOL for alerts |
-| `DEFAULT_ETH_THRESHOLD` | No | 50 | Min ETH for alerts |
-| `DEFAULT_USD_THRESHOLD` | No | 50000 | Min USD for alerts |
-| `DEFAULT_LP_THRESHOLD` | No | 25000 | Min USD for LP alerts |
-| `DB_PATH` | No | /app/data/whalegod.db | SQLite database path |
-| `LOG_RETENTION_DAYS` | No | 7 | Days to keep whale logs |
-| `MAX_WALLETS_PER_USER` | No | 10 | Max tracked wallets per user |
-| `FLOOD_THRESHOLD` | No | 20 | Events/min to trigger digest mode |
-| `FLOOD_WINDOW_SECONDS` | No | 60 | Flood detection window |
-| `ADMIN_CHAT_ID` | No | — | Admin chat for startup notifications |
-| `DONATE_SOL` | No | — | SOL donation address |
-| `DONATE_ETH` | No | — | ETH donation address |
-| `DONATE_BTC` | No | — | BTC donation address |
-| `DONATE_USDT_TRC20` | No | — | USDT TRC-20 donation address |
+**Q: Is this free?**
+A: Yes. Bot is free, all APIs have free tiers. Total cost: $0.
+
+**Q: Do I need a VPS?**
+A: For Solana webhooks, you need a public URL. Docker on a $4/month VPS works perfectly.
+
+**Q: Can I track other chains?**
+A: Currently Solana + Ethereum. Adding new chains requires implementing a new chain module in `bot/chains/`.
+
+**Q: How fast are the alerts?**
+A: Solana: instant (webhooks). Ethereum: ~60 seconds (polling).
 
 ---
 
-## Donation
+## Alternatives Comparison
 
-If WHALEGOD helps you catch alpha, consider supporting the project:
+| Feature | WHALEGOD | Whale Alert | Nansen | Arkham |
+|---------|----------|-------------|--------|--------|
+| Price | **Free** | Freemium | $150/mo | $50/mo |
+| Solana | Yes | No | Yes | Yes |
+| Ethereum | Yes | Yes | Yes | Yes |
+| Telegram bot | Yes | Yes | No | No |
+| Self-hosted | Yes | No | No | No |
+| Open source | Yes | No | No | No |
+| Customizable | Fully | No | Limited | Limited |
 
-Set your donation addresses in `.env` and users can see them via `/donate`.
+---
 
-the WHALEGOD remembers those who donate 👑🐋
+## Contributing
+
+Contributions are welcome! Please read the [Contributing Guide](CONTRIBUTING.md) before submitting a pull request.
 
 ---
 
 ## License
 
-MIT License. ser, it's free. like our API costs. wagmi 🐋
+This project is licensed under the [MIT License](LICENSE).
 
 ---
 
-*built by degens, for degens. wen whale moves, we move first ser.* 🐋🔥
+## Disclaimer
+
+This tool is provided for **educational and informational purposes only**. It does not constitute financial advice. On-chain data may be delayed or incomplete. The authors are not responsible for trading decisions made based on the bot's alerts.
+
+---
+
+<p align="center">
+  <strong>If this project helps you, please give it a star!</strong><br>
+  <a href="https://github.com/SoCloseSociety/WhalegodTG">
+    <img src="https://img.shields.io/github/stars/SoCloseSociety/WhalegodTG?style=for-the-badge&logo=github&color=575ECF" alt="Star this repo">
+  </a>
+</p>
+
+<br>
+
+<p align="center">
+  <sub>Built with purpose by <a href="https://soclose.co"><strong>SoClose</strong></a> &mdash; Digital Innovation Through Automation & AI</sub><br>
+  <sub>
+    <a href="https://soclose.co">Website</a> &bull;
+    <a href="https://linkedin.com/company/soclose-agency">LinkedIn</a> &bull;
+    <a href="https://twitter.com/SoCloseAgency">Twitter</a> &bull;
+    <a href="mailto:contact@soclose.co">Contact</a>
+  </sub>
+</p>
