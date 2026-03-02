@@ -67,12 +67,8 @@ DONATE_USDT_TRC20: str = os.getenv("DONATE_USDT_TRC20", "")
 # ---------------------------------------------------------------------------
 # Database
 # ---------------------------------------------------------------------------
-DB_PATH: str = os.getenv("DB_PATH", "data/whalegod.db")
-
-# ---------------------------------------------------------------------------
-# Operational
-# ---------------------------------------------------------------------------
-LOG_RETENTION_DAYS: int = int(os.getenv("LOG_RETENTION_DAYS", "7"))
+# Database connection string should be stored in an environment variable for security reasons.
+DB_PATH: str = os.getenv("DATABASE_URL")
 MAX_WALLETS_PER_USER: int = int(os.getenv("MAX_WALLETS_PER_USER", "10"))
 FLOOD_THRESHOLD: int = int(os.getenv("FLOOD_THRESHOLD", "20"))
 FLOOD_WINDOW_SECONDS: int = int(os.getenv("FLOOD_WINDOW_SECONDS", "60"))
