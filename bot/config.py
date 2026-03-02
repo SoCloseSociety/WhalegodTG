@@ -15,37 +15,33 @@ logger = logging.getLogger("whalegod")
 # ---------------------------------------------------------------------------
 # Telegram
 # ---------------------------------------------------------------------------
-TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
-try:
-    _admin_raw = os.getenv("ADMIN_CHAT_ID", "")
-    ADMIN_CHAT_ID: int | None = int(_admin_raw) if _admin_raw.strip() else None
-except ValueError:
-    ADMIN_CHAT_ID = None
+TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN")
+ADMIN_CHAT_ID: int | None = os.getenv_int("ADMIN_CHAT_ID")
 
 # ---------------------------------------------------------------------------
 # Solana APIs
 # ---------------------------------------------------------------------------
-HELIUS_API_KEY: str = os.getenv("HELIUS_API_KEY", "")
-HELIUS_BASE_URL: str = "https://api.helius.xyz/v0"
+HELIUS_API_KEY: str = os.getenv("HELIUS_API_KEY")
+HELIUS_BASE_URL: str = os.getenv_str("HELIUS_BASE_URL", "https://api.helius.xyz/v0")
 
 # ---------------------------------------------------------------------------
 # Ethereum APIs
 # ---------------------------------------------------------------------------
-ALCHEMY_API_KEY: str = os.getenv("ALCHEMY_API_KEY", "")
+ALCHEMY_API_KEY: str = os.getenv("ALCHEMY_API_KEY")
 ALCHEMY_RPC_URL: str = f"https://eth-mainnet.g.alchemy.com/v2/{ALCHEMY_API_KEY}"
-ETHERSCAN_API_KEY: str = os.getenv("ETHERSCAN_API_KEY", "")
+ETHERSCAN_API_KEY: str = os.getenv("ETHERSCAN_API_KEY")
 ETHERSCAN_BASE_URL: str = "https://api.etherscan.io/api"
 
 # ---------------------------------------------------------------------------
 # Price fallback
 # ---------------------------------------------------------------------------
-COINGECKO_API_KEY: str = os.getenv("COINGECKO_API_KEY", "")
+COINGECKO_API_KEY: str = os.getenv("COINGECKO_API_KEY")
 
 # ---------------------------------------------------------------------------
 # Webhook
 # ---------------------------------------------------------------------------
-WEBHOOK_HOST: str = os.getenv("WEBHOOK_HOST", "")
-WEBHOOK_PORT: int = int(os.getenv("WEBHOOK_PORT", "9876"))
+WEBHOOK_HOST: str = os.getenv("WEBHOOK_HOST")
+WEBHOOK_PORT: int = int(os.getenv_int("WEBHOOK_PORT", 9876))
 HEALTH_PORT: int = 8080
 
 # ---------------------------------------------------------------------------
@@ -72,10 +68,10 @@ DB_PATH: str = os.getenv("DB_PATH", "data/whalegod.db")
 # ---------------------------------------------------------------------------
 # Operational
 # ---------------------------------------------------------------------------
-LOG_RETENTION_DAYS: int = int(os.getenv("LOG_RETENTION_DAYS", "7"))
-MAX_WALLETS_PER_USER: int = int(os.getenv("MAX_WALLETS_PER_USER", "10"))
-FLOOD_THRESHOLD: int = int(os.getenv("FLOOD_THRESHOLD", "20"))
-FLOOD_WINDOW_SECONDS: int = int(os.getenv("FLOOD_WINDOW_SECONDS", "60"))
+LOG_RETENTION_DAYS: int = int(os.getenv_int("LOG_RETENTION_DAYS", 7))
+MAX_WALLETS_PER_USER: int = int(os.getenv_int("MAX_WALLETS_PER_USER", 10))
+FLOOD_THRESHOLD: int = int(os.getenv_int("FLOOD_THRESHOLD", 20))
+FLOOD_WINDOW_SECONDS: int = int(os.getenv_int("FLOOD_WINDOW_SECONDS", 60))
 
 # ---------------------------------------------------------------------------
 # Well-known token mints / addresses
