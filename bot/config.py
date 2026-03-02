@@ -15,12 +15,8 @@ logger = logging.getLogger("whalegod")
 # ---------------------------------------------------------------------------
 # Telegram
 # ---------------------------------------------------------------------------
-TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
-try:
-    _admin_raw = os.getenv("ADMIN_CHAT_ID", "")
-    ADMIN_CHAT_ID: int | None = int(_admin_raw) if _admin_raw.strip() else None
-except ValueError:
-    ADMIN_CHAT_ID = None
+TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN")
+ADMIN_CHAT_ID: int | None = os.getenv_int("ADMIN_CHAT_ID")
 
 # ---------------------------------------------------------------------------
 # Solana APIs
