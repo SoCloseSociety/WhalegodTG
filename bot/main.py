@@ -291,13 +291,14 @@ async def main() -> None:
     """Main async entry point."""
     global _start_time, _session, _scheduler, _app
 
-    _start_time = time.monotonic()
+    try:
+        _start_time = time.monotonic()
 
-    logger.info("=" * 50)
-    logger.info("WHALEGOD v%s starting up...", __version__)
-    logger.info("=" * 50)
+        logger.info("=" * 50)
+        logger.info("WHALEGOD v%s starting up...", __version__)
+        logger.info("=" * 50)
 
-    # Validate environment
+        # Validate environment
     validate_env()
 
     # Initialize database
